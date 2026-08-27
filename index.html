@@ -660,9 +660,17 @@ document.querySelectorAll('#navLinks a').forEach(function(a){ a.addEventListener
   function fxSurge(x,y){ ctx.strokeStyle='rgba(239,160,42,0.85)'; ctx.lineWidth=2.5; for(var i=0;i<3;i++){ var yy=y-6+i*7; ctx.beginPath(); ctx.moveTo(x-20,yy); ctx.lineTo(x-34-i*4,yy); ctx.stroke(); } ctx.fillStyle='#EFA02A'; var sx=x+2,sy=y-32; blob([[sx,sy-5],[sx+1.6,sy-1.6],[sx+5,sy],[sx+1.6,sy+1.6],[sx,sy+5],[sx-1.6,sy+1.6],[sx-5,sy],[sx-1.6,sy-1.6]]); ctx.fill(); }
   function fxStumble(x,y){ ctx.fillStyle='rgba(58,141,222,0.8)'; [[-8,-26],[6,-30],[14,-24]].forEach(function(d){ ctx.beginPath(); ctx.moveTo(x+d[0],y+d[1]); ctx.quadraticCurveTo(x+d[0]+3,y+d[1]+5,x+d[0],y+d[1]+7); ctx.quadraticCurveTo(x+d[0]-3,y+d[1]+5,x+d[0],y+d[1]); ctx.fill(); }); }
   function themeCols(){ if(theme==='halloween')return {l1:'#241B3A',l2:'#2E2350',wl1:'#15303A',wl2:'#183848',rip:'rgba(120,90,180,0.3)',fa:'#EF9F27',fb:'#1A1428'}; if(theme==='christmas')return {l1:'#EAF2FB',l2:'#F6FBFF',wl1:'#DCEEFB',wl2:'#CDE6F9',rip:'rgba(120,160,210,0.3)',fa:'#C0392B',fb:'#2E8B57'}; return {l1:'#E4F0D4',l2:'#D8E9C2',wl1:'#DCEEFB',wl2:'#CDE6F9',rip:'rgba(55,138,221,0.22)',fa:'#33322F',fb:'#F1EFE8'}; }
+  function waterMotion(key){ var band=(WATER_BAND[key])||WATER_BAND._default; var wy0=Math.round(LH*band[0]), wy1=Math.round(LH*band[1]), span=wy1-wy0; if(span<=0)return;
+    ctx.save(); ctx.beginPath(); ctx.rect(0,wy0,W,span); ctx.clip(); ctx.globalCompositeOperation='lighter';
+    for(var g=0;g<2;g++){ var cx=W*(0.5+0.32*Math.sin(wave*0.45+g*2.3)), cy=wy0+span*(0.5+0.32*Math.cos(wave*0.38+g*1.7)), rr=W*0.34;
+      var rad=ctx.createRadialGradient(cx,cy,0,cx,cy,rr); rad.addColorStop(0,'rgba(255,255,255,0.05)'); rad.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=rad; ctx.fillRect(0,wy0,W,span); }
+    for(var b=0;b<3;b++){ var by=wy0+((wave*10+b*span/3)%(span+30))-15, gg=ctx.createLinearGradient(0,by-7,0,by+7);
+      gg.addColorStop(0,'rgba(255,255,255,0)'); gg.addColorStop(0.5,'rgba(255,255,255,0.05)'); gg.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=gg;
+      ctx.beginPath(); ctx.moveTo(0,by-7); var xx; for(xx=0;xx<=W;xx+=16){ ctx.lineTo(xx, by-7+Math.sin(xx*0.03+wave*1.6+b)*3); } for(xx=W;xx>=0;xx-=16){ ctx.lineTo(xx, by+7+Math.sin(xx*0.03+wave*1.6+b)*3); } ctx.closePath(); ctx.fill(); }
+    ctx.restore(); }
   function drawPond(){ var tc=themeCols(), y0=0, h=LH, waterChar=(charType!=='rabbit');
     var info=bgInfo(), bg=info.img;
-    if(bg){ ctx.drawImage(bg,0,y0,W,h); }               // nền = ảnh chủ đề
+    if(bg){ ctx.drawImage(bg,0,y0,W,h); if(waterChar)waterMotion(info.key); }   // nền = ảnh chủ đề + hiệu ứng nước động
     else if(waterChar){ ctx.fillStyle=tc.wl1; ctx.fillRect(0,y0,W,h); ctx.fillStyle=tc.wl2; for(var yb=y0; yb<y0+h; yb+=40){ ctx.fillRect(0,yb+20,W,20); } }
     else { ctx.fillStyle=tc.l1; ctx.fillRect(0,y0,W,h); ctx.fillStyle=tc.l2; for(var yg=y0; yg<y0+h; yg+=40){ ctx.fillRect(0,yg+20,W,20); } }
     // Hiệu ứng động vẽ đè lên: gợn sóng nước cho ảnh/nền nước, cỏ đung đưa cho nền vẽ tay trên cạn
