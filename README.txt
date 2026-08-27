@@ -22,3 +22,4 @@ XEM THỬ Ở MÁY (localhost)
 
 GHI CHÚ
 - Font chữ lấy từ Google Fonts (cần internet). Không có mạng thì tự dùng font hệ thống.
+---
