@@ -180,6 +180,7 @@
     .nav-toggle{display:block;}
     .section{padding:52px 0;}
   }
+
   @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto;} }
 
   /* compact settings bar + popups */
@@ -197,6 +198,21 @@
   #raceStage #setBar.hide{display:none;}
   .game-shell #raceStage .set-btn{font-size:12px; padding:6px 11px; background:rgba(255,255,255,.90); border:none; box-shadow:0 3px 10px rgba(18,59,107,.28); backdrop-filter:blur(4px); justify-content:flex-start; white-space:nowrap;}
   .game-shell #raceStage .set-btn:hover{background:#fff; color:var(--sky);}
+  @media (max-width:640px){
+    .game-wrap{margin-top:12px;}
+    .game-card{padding:12px;}
+    /* HUD gọn lại cho màn nhỏ */
+    #hud{top:8px; left:8px; right:8px; gap:5px;}
+    .game-shell #hud button{font-size:11px !important; padding:5px 8px !important; box-shadow:0 2px 6px rgba(18,59,107,.25);}
+    .game-shell #start{font-size:11px !important; padding:6px 10px !important;}
+    #hud #timer{font-size:18px !important; padding:2px 9px !important;}
+    #hud #fs{font-size:0 !important; padding:5px 8px !important;}   /* ẩn chữ, chỉ giữ icon */
+    #hud #fs::before{content:"⛶"; font-size:16px;}
+    #live{font-size:13px; padding:5px 10px; margin-bottom:8px;}
+    /* Cụm setting: đưa xuống thành hàng ngang dưới canvas, không che mặt nước */
+    #raceStage #setBar{position:static; top:auto; right:auto; flex-direction:row; flex-wrap:wrap; gap:6px; margin:10px 0 0; width:auto; align-items:stretch;}
+    .game-shell #raceStage .set-btn{font-size:12px; padding:7px 10px; background:#fff; border:1.5px solid var(--border); box-shadow:none; backdrop-filter:none;}
+  }
 </style>
 </head>
 <body>
@@ -468,6 +484,10 @@ document.querySelectorAll('#navLinks a').forEach(function(a){ a.addEventListener
   I18N.vi.brand_label='Thương hiệu'; I18N.en.brand_label='Brand';
   I18N.vi.on='Bật'; I18N.en.on='On'; I18N.vi.off='Tắt'; I18N.en.off='Off';
   I18N.vi.settings='Cài đặt'; I18N.en.settings='Settings';
+  I18N.vi.res_title='Kết quả'; I18N.en.res_title='Results';
+  I18N.vi.res_copy='Sao chép'; I18N.en.res_copy='Copy';
+  I18N.vi.res_csv='Xuất CSV'; I18N.en.res_csv='Export CSV';
+  I18N.vi.res_copied='Đã sao chép'; I18N.en.res_copied='Copied';
   I18N.vi.clear_all='Xóa hết'; I18N.en.clear_all='Remove all';
   I18N.vi.logo_remove='Xóa logo'; I18N.en.logo_remove='Remove logo';
   I18N.vi.name_clear='Xóa tên'; I18N.en.name_clear='Clear name';
@@ -772,7 +792,20 @@ document.querySelectorAll('#navLinks a').forEach(function(a){ a.addEventListener
     if(first){ document.getElementById('status').innerHTML='<span style="color:var(--text-success);">'+t('winner_status',{name:first.name})+'</span>'; }
     if(racers.every(function(r){return r.done;})){ running=false; stopCrowd(); playWin(); charSound(); say(t('finish_congrats',{name:first.name}), true); winner=first; wgX=finishX(); victory=true; showResults(); return; }
     anim=requestAnimationFrame(step); }
-  function showResults(){ var order=racers.slice().sort(function(a,b){return a.place-b.place;}); var html='<div style="background:var(--surface-1); border-radius:12px; padding:10px 14px; font-size:14px;">'; order.forEach(function(r,i){ html+='<div style="display:flex; gap:10px; padding:3px 0; '+(i===0?'font-weight:600;':'')+'"><span style="color:var(--text-secondary); width:24px;">#'+(i+1)+'</span><span>'+r.name+'</span></div>'; }); html+='</div>'; document.getElementById('results').innerHTML=html; }
+  function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function resultsText(order){ return order.map(function(r,i){return '#'+(i+1)+' '+r.name;}).join('\n'); }
+  function resultsCSV(order){ var rows=['Rank,Name']; order.forEach(function(r,i){ rows.push((i+1)+',"'+String(r.name).replace(/"/g,'""')+'"'); }); return '\uFEFF'+rows.join('\r\n'); }
+  function copyResults(txt, btn){ function ok(){ if(btn){ var old=btn.getAttribute('data-lbl')||btn.textContent; btn.setAttribute('data-lbl',old); btn.textContent=t('res_copied'); setTimeout(function(){btn.textContent=old;},1400); } }
+    function fb(){ try{ var ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); ok(); }catch(e){} }
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(ok, fb); } else fb(); }
+  function downloadCSV(csv){ try{ var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}), url=URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download='ket-qua-dua-vit.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(url);},1000); }catch(e){} }
+  function showResults(){ var order=racers.slice().sort(function(a,b){return a.place-b.place;}); var perCol=10, cols='';
+    for(var c=0;c<order.length;c+=perCol){ cols+='<div style="flex:0 0 auto; min-width:150px;">'; for(var i=c;i<Math.min(c+perCol,order.length);i++){ cols+='<div style="display:flex; gap:10px; padding:3px 0; '+(i===0?"font-weight:600;":"")+'"><span style="color:var(--text-secondary); width:30px;">#'+(i+1)+'</span><span>'+escHtml(order[i].name)+'</span></div>'; } cols+='</div>'; }
+    var head='<div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap;"><b style="font-family:var(--font-display); color:var(--deep);">'+t('res_title')+' ('+order.length+')</b><div style="display:flex; gap:8px;"><button id="resCopy" type="button" style="font-size:13px; padding:6px 12px;">'+t('res_copy')+'</button><button id="resCsv" type="button" style="font-size:13px; padding:6px 12px;">'+t('res_csv')+'</button></div></div>';
+    var html='<div style="background:var(--surface-1); border-radius:12px; padding:12px 14px; font-size:14px;">'+head+'<div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; max-height:360px; overflow:auto;">'+cols+'</div></div>';
+    document.getElementById('results').innerHTML=html;
+    var cp=document.getElementById('resCopy'); if(cp)cp.onclick=function(){ copyResults(resultsText(order), cp); };
+    var ex=document.getElementById('resCsv'); if(ex)ex.onclick=function(){ downloadCSV(resultsCSV(order)); }; }
   document.getElementById('start').onclick=function(){ if(running)return; ensureAudio(); var names=parseNames(), err=document.getElementById('err'); if(names.length<2){ err.textContent=t('need_2'); return; } err.textContent=''; setup(); running=true; tPrev=0; raceT=0; var count=3; setTimer('3'); document.getElementById('status').textContent=t('get_ready',{n:count}); say(t('racers_ready')); tone(500,0.12,'square',0.1); var iv=setInterval(function(){ count--; if(count>0){ setTimer(String(count)); document.getElementById('status').textContent=t('get_ready',{n:count}); tone(500,0.12,'square',0.1);} else { clearInterval(iv); setTimer('GO!'); document.getElementById('status').textContent=t('racing'); say(t('go_cmt'), true); tone(760,0.18,'square',0.12); tone(1020,0.22,'square',0.12,0.12); startCrowd(); startThemeMusic(); startDrum(); charSound(); tPrev=0; anim=requestAnimationFrame(step);} },700); };
   document.getElementById('reset').onclick=function(){ if(anim)cancelAnimationFrame(anim); running=false; stopCrowd(); document.getElementById('status').textContent=t('ready'); document.getElementById('liveTxt').textContent=t('caster_ready'); setTimer(fmt(duration)); setup(); };
   document.getElementById('reshuffle').onclick=function(){ if(running)return; racers.forEach(dress); spreadSprites(racers,true); draw(); };
